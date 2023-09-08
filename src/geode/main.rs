@@ -1,18 +1,17 @@
+use crystal::strategy::All;
+use crystal::sale::Sale;
 
-use crystal::{Event, TicketSpecification};
-
-struct TicketReservation {
-    account: String,
-    specification: TicketSpecification,
-    event: Event,
-}
+// struct TicketReservation {
+//     account: String,
+//     specification: TicketSpecification,
+//     event: Event,
+// }
 
 fn main() {
-    println!("Hello, world!");
+    env_logger::init();
 
-    let test_event = Event {
-        uid: "test".to_string(),
-        name: "Test Event".to_string(),
-        sales_start: chrono::Utc::now(),
-    };
+    let test_product = Sale::from_uid("22b2e772-5889-4b18-bae9-24a3d05bfe3f".to_string());
+
+
+    test_product.reserve_all(&All);
 }
