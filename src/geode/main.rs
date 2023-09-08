@@ -7,7 +7,7 @@ async fn main() {
 
     let client = Client::new();
 
-    let product = client.product("22b2e772-5889-4b18-bae9-24a3d05bfe3f".to_string())
+    let product = client.product("94199b1a-80b1-4e24-975f-ae8c6759aecd".to_string())
         .await
         .unwrap();
 

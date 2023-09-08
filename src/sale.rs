@@ -1,5 +1,5 @@
 use crate::api::{Category, Company, Product, Variant};
-use crate::request::{Client,BatchReservation, VariantReservation};
+use crate::request::{BatchReservation, Client, VariantReservation};
 use crate::strategy::Quantity;
 use serde::{Deserialize, Serialize};
 
@@ -32,12 +32,29 @@ impl SaleClient {
     }
 
     pub async fn reserve_all(&self, strategy: &impl Quantity) {
+        let mut total_quantity = 0;
         let reservations = self
             .sale
             .variants
             .iter()
-            .map(|variant| variant.to_reservation(strategy))
+            .filter_map(|variant| {
+                if variant.availability > 0 {
+                    let reservation = variant.to_reservation(strategy);
+                    total_quantity += reservation.quantity;
+
+                    Some(reservation)
+                } else {
+                    None
+                }
+            })
             .collect();
+
+        if self.sale.product.max_total_reservations_per_checkout > 0
+            && total_quantity > self.sale.product.max_total_reservations_per_checkout
+        {
+            println!("Too many variants to reserve");
+            return;
+        }
 
         let batch = BatchReservation {
             to_create: reservations,
