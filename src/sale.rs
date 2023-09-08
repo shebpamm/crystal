@@ -1,5 +1,5 @@
 use crate::api::{Category, Company, Product, Variant};
-use crate::request::{BatchReservation, VariantReservation};
+use crate::request::{Client,BatchReservation, VariantReservation};
 use crate::strategy::Quantity;
 use serde::{Deserialize, Serialize};
 
@@ -13,21 +13,23 @@ pub struct Sale {
     pub is_haka_required: bool,
 }
 
-impl Sale {
-    pub fn from_uid(uid: String) -> Self {
-        crate::request::products(uid)
-    }
+pub struct SaleClient {
+    pub sale: Sale,
+    pub client: Client,
+}
 
+impl SaleClient {
     pub fn reserve(&self, variant: &Variant, strategy: &impl Quantity) {
         let variant_reservation = variant.to_reservation(strategy);
 
         let batch = BatchReservation::create(&variant_reservation);
 
-        crate::request::reserve(&batch)
+        self.client.reserve(&batch)
     }
 
     pub fn reserve_all(&self, strategy: &impl Quantity) {
         let reservations = self
+            .sale
             .variants
             .iter()
             .map(|variant| variant.to_reservation(strategy))
@@ -38,7 +40,7 @@ impl Sale {
             to_cancel: vec![],
         };
 
-        crate::request::reserve(&batch)
+        self.client.reserve(&batch)
     }
 }
 

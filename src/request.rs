@@ -1,6 +1,6 @@
-use crate::sale::Sale;
-use std::env;
+use crate::sale::{Sale,SaleClient};
 use serde::{Deserialize, Serialize};
+use std::env;
 
 const KIDE_API_BASE_URL: &str = "https://api.kide.app/api/";
 
@@ -40,32 +40,53 @@ impl BatchReservation {
     }
 }
 
-fn token() -> String {
-    match env::var("KIDE_API_TOKEN") {
-        Ok(token) => token,
-        Err(_) => panic!("KIDE_API_TOKEN not set"),
-    } 
+#[derive(Default, Debug, Clone)]
+pub struct Client {
+    client: reqwest::blocking::Client,
+    token: String,
 }
 
-pub fn products(uid: String) -> Sale {
-    let url = format!("{}products/{}", KIDE_API_BASE_URL, uid);
-    let response = reqwest::blocking::get(&url).unwrap();
-    let response_document: ProductResponse = response.json().unwrap();
+impl Client {
+    pub fn new() -> Self {
+        Client {
+            client: reqwest::blocking::Client::new(),
+            token: Self::token(),
+        }
+    }
 
-    return response_document.model;
-}
+    fn token() -> String {
+        match env::var("KIDE_API_TOKEN") {
+            Ok(token) => token,
+            Err(_) => panic!("KIDE_API_TOKEN not set"),
+        }
+    }
 
-pub fn reserve(reservation: &BatchReservation) {
-    log::debug!("Reserving reservation: {:?}", reservation);
+    pub fn product(&self, uid: String) -> SaleClient {
+        let url = format!("{}products/{}", KIDE_API_BASE_URL, uid);
+        let response = self.client
+            .get(&url)
+            .send()
+            .unwrap();
+        let response_document: ProductResponse = response.json().unwrap();
 
-    let url = format!("{}reservations", KIDE_API_BASE_URL);
+        return SaleClient {
+            sale: response_document.model,
+            client: self.clone(),
+        };
+    }
 
-    let client = reqwest::blocking::Client::new();
-    let response = client.post(&url)
-        .header("Authorization", format!("Bearer {}", token()))
-        .json(reservation)
-        .send()
-        .unwrap();
+    pub fn reserve(&self, reservation: &BatchReservation) {
+        log::debug!("Reserving reservation: {:?}", reservation);
 
-    log::debug!("Response: {:#?}", response);
+        let url = format!("{}reservations", KIDE_API_BASE_URL);
+
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.token))
+            .json(reservation)
+            .send()
+            .unwrap();
+
+        log::debug!("Response: {:#?}", response);
+    }
 }
