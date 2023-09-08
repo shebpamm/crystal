@@ -42,14 +42,14 @@ impl BatchReservation {
 
 #[derive(Default, Debug, Clone)]
 pub struct Client {
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     token: String,
 }
 
 impl Client {
     pub fn new() -> Self {
         Client {
-            client: reqwest::blocking::Client::new(),
+            client: reqwest::Client::new(),
             token: Self::token(),
         }
     }
@@ -61,21 +61,21 @@ impl Client {
         }
     }
 
-    pub fn product(&self, uid: String) -> SaleClient {
+    pub async fn product(&self, uid: String) -> Result<SaleClient, reqwest::Error> {
         let url = format!("{}products/{}", KIDE_API_BASE_URL, uid);
         let response = self.client
             .get(&url)
             .send()
-            .unwrap();
-        let response_document: ProductResponse = response.json().unwrap();
+            .await?;
+        let response_document: ProductResponse = response.json().await?;
 
-        return SaleClient {
+        return Ok(SaleClient {
             sale: response_document.model,
             client: self.clone(),
-        };
+        });
     }
 
-    pub fn reserve(&self, reservation: &BatchReservation) {
+    pub async fn reserve(&self, reservation: &BatchReservation) -> Result<(), reqwest::Error> {
         log::debug!("Reserving reservation: {:?}", reservation);
 
         let url = format!("{}reservations", KIDE_API_BASE_URL);
@@ -85,8 +85,10 @@ impl Client {
             .header("Authorization", format!("Bearer {}", self.token))
             .json(reservation)
             .send()
-            .unwrap();
+            .await?;
 
         log::debug!("Response: {:#?}", response);
+
+        Ok(())
     }
 }

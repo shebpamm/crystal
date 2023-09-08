@@ -19,15 +19,19 @@ pub struct SaleClient {
 }
 
 impl SaleClient {
-    pub fn reserve(&self, variant: &Variant, strategy: &impl Quantity) {
+    pub async fn reserve(&self, variant: &Variant, strategy: &impl Quantity) {
         let variant_reservation = variant.to_reservation(strategy);
 
         let batch = BatchReservation::create(&variant_reservation);
 
-        self.client.reserve(&batch)
+        match self.client.reserve(&batch).await {
+            Ok(_) => println!("Reserved variant {}", variant.inventory_id),
+            Err(e) => println!("Error: {}", e), // For now we don't care about errors, in future
+                                                // we'd have retry logic
+        }
     }
 
-    pub fn reserve_all(&self, strategy: &impl Quantity) {
+    pub async fn reserve_all(&self, strategy: &impl Quantity) {
         let reservations = self
             .sale
             .variants
@@ -40,7 +44,10 @@ impl SaleClient {
             to_cancel: vec![],
         };
 
-        self.client.reserve(&batch)
+        match self.client.reserve(&batch).await {
+            Ok(_) => println!("Reserved all variants"),
+            Err(e) => println!("Error: {}", e),
+        }
     }
 }
 
