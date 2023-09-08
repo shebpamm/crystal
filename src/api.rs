@@ -46,6 +46,7 @@ pub struct Product {
     pub sales_paused: bool,
     pub time: i64,
     pub time_until_sales_start: i64,
+    #[serde(default)]
     pub max_total_reservations_per_checkout: i64,
 }
 

@@ -13,6 +13,7 @@ pub struct Sale {
     pub is_haka_required: bool,
 }
 
+#[derive(Default, Debug, Clone)]
 pub struct SaleClient {
     pub sale: Sale,
     pub client: Client,
