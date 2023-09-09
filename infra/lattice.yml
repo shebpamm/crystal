@@ -26,10 +26,10 @@ spec:
     spec:
       containers:
         - name: lattice
-          image: crystalimages.azurecr.io/sheb/lattice
+          image: crystalimages.azurecr.io/sheb/lattice:latest
           env:
             - name: RUST_LOG
-              value: info
+              value: crystal::scalp=debug,info
 
             - name: PROD_DATABASE_URL
               valueFrom:
