@@ -335,6 +335,7 @@ dependencies = [
  "env_logger",
  "fang",
  "log",
+ "native-tls",
  "postgres-native-tls",
  "reqwest",
  "serde",

@@ -23,7 +23,7 @@ async fn main() {
     env_logger::init();
     let cli = Cli::parse();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("PRODUCTION_DATABASE_URL").expect("DATABASE_URL must be set");
 
     log::info!("Starting...");
     let max_pool_size: u32 = 3;
