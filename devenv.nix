@@ -7,7 +7,10 @@
     postgresql
     sqlite
     mysql80
+    terraform
+    azure-cli
   ];
 
   languages.rust.enable = true;
+  dotenv.enable = true;
 }
