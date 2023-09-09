@@ -1,13 +1,9 @@
-use crystal::db::do_migrations;
 use crystal::queue::connect_to_queue;
 use crystal::task::ScalpingTask;
-use crystal::worker::create_worker_pool;
 
 use dotenvy::dotenv;
-use fang::asynk::async_queue::AsyncQueue;
 use fang::asynk::async_queue::AsyncQueueable;
 use fang::AsyncRunnable;
-use fang::NoTls;
 use std::env;
 
 use clap::Parser;
