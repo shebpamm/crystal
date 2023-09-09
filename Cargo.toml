@@ -7,9 +7,12 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4.30", features = ["serde"] }
+diesel = { version = "2.1.1", features = ["postgres"] }
+dotenvy = "0.15.7"
 env_logger = "0.10.0"
-fang = "0.10.4"
+fang = { rev = "0.10.4.1", features = ["migrations_postgres"], git = "https://github.com/ayrat555/fang" }
 log = "0.4.20"
+postgres-native-tls = "0.5.0"
 reqwest = { version = "0.11.20", features = ["json", "blocking"] }
 serde = "1.0.188"
 serde_json = "1.0.105"

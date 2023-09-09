@@ -47,18 +47,10 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new() -> Self {
+    pub fn new(token: String) -> Self {
         Client {
             client: reqwest::Client::builder().build().unwrap(),
-
-            token: Self::token(),
-        }
-    }
-
-    fn token() -> String {
-        match env::var("KIDE_API_TOKEN") {
-            Ok(token) => token,
-            Err(_) => panic!("KIDE_API_TOKEN not set"),
+            token
         }
     }
 

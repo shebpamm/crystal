@@ -1,35 +1,57 @@
-use crystal::strategy::{Single,All,Count};
-use crystal::request::Client;
-use crystal::sale::SaleClient;
-use tokio::task::JoinSet;
-
-async fn test_get(client: Client) {
-        let p = client.product("22b2e772-5889-4b18-bae9-24a3d05bfe3f".to_string()).await.unwrap();
-        println!("{}", p.sale.product.name);
-}
-
-async fn test_reserve(sc: SaleClient, count: i64) {
-    sc.reserve_all(&Count { count }).await;
-    println!("Reserved {}", count);
-}
+use diesel::PgConnection;
+use diesel::Connection;
+use dotenvy::dotenv;
+use crystal::task::ScalpingTask;
+use fang::asynk::async_queue::AsyncQueue;
+use fang::asynk::async_worker_pool::AsyncWorkerPool;
+use fang::run_migrations_postgres;
+use fang::NoTls;
+use std::env;
+use std::time::Duration;
+use fang::asynk::AsyncRunnable;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     env_logger::init();
 
-    let client = Client::new();
-    let mut set = JoinSet::new();
+    // Typetag is not able to detect the use of this if we don't artificially use it here.
+    //
+    // https://github.com/dtolnay/typetag/issues/35
+    let _: Box<dyn AsyncRunnable> = Box::new(ScalpingTask::new("".to_owned(), "".to_owned(), chrono::Utc::now()));
 
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let product = client.product("22b2e772-5889-4b18-bae9-24a3d05bfe3f".to_string())
-        .await
-        .unwrap();
+    let mut connection = PgConnection::establish(&database_url).unwrap();
 
-    for i in 1..20 {
-        set.spawn(test_reserve(product.clone(), i));
-    }
+    log::info!("Running migrations...");
 
-    while let Some(_res) = set.join_next().await {
+    run_migrations_postgres(&mut connection).unwrap();
 
-    }
+    log::info!("Migrations done...");
+
+    drop(connection);
+
+    log::info!("Starting...");
+
+    let max_pool_size: u32 = 3;
+    let mut queue = AsyncQueue::builder()
+        .uri(database_url)
+        .max_pool_size(max_pool_size)
+        .build();
+
+    queue.connect(NoTls).await.unwrap();
+    log::info!("Queue connected...");
+
+    let mut pool: AsyncWorkerPool<AsyncQueue<NoTls>> = AsyncWorkerPool::builder()
+        .number_of_workers(10_u32)
+        .queue(queue.clone())
+        .build();
+
+    log::info!("Pool created ...");
+
+    pool.start().await;
+    log::info!("Workers started ...");
+
+    tokio::time::sleep(Duration::from_secs(100)).await;
 }
