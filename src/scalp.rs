@@ -1,9 +1,9 @@
 use chrono::Utc;
-use tokio::time::Duration;
 
 use crate::request::Client;
 use crate::strategy::Count;
 use fang::FangError;
+use std::time::{Duration,Instant};
 
 pub async fn scalp(
     event_id: String,
@@ -35,11 +35,15 @@ pub async fn scalp(
         }
     }
 
+
     // Begin reserving tickets
     log::info!("Reserving all variants...");
+    let measurement_begin = Instant::now();
     for i in 1..21 {
         let _ = sale_client.reserve_all(&Count { count: i }).await;
     }
+    let execution_time = measurement_begin.elapsed().as_millis();
+    log::debug!("Execution took {}ms", execution_time);
     log::info!("Done");
 
     Ok(())
