@@ -63,7 +63,7 @@ impl SaleClient {
         };
 
         match self.client.reserve(&batch).await {
-            Ok(_) => println!("Reserved all variants"),
+            Ok(_) => log::debug!("Reserved all variants"),
             Err(e) => println!("Error: {}", e),
         }
     }

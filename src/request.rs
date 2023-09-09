@@ -1,4 +1,4 @@
-use crate::sale::{Sale,SaleClient};
+use crate::sale::{Sale, SaleClient};
 use serde::{Deserialize, Serialize};
 use std::env;
 
@@ -49,7 +49,8 @@ pub struct Client {
 impl Client {
     pub fn new() -> Self {
         Client {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder().build().unwrap(),
+
             token: Self::token(),
         }
     }
@@ -63,10 +64,7 @@ impl Client {
 
     pub async fn product(&self, uid: String) -> Result<SaleClient, reqwest::Error> {
         let url = format!("{}products/{}", KIDE_API_BASE_URL, uid);
-        let response = self.client
-            .get(&url)
-            .send()
-            .await?;
+        let response = self.client.get(&url).send().await?;
         log::debug!("Response: {:#?}", response);
         let response_document: ProductResponse = response.json().await?;
 
@@ -81,7 +79,8 @@ impl Client {
 
         let url = format!("{}reservations", KIDE_API_BASE_URL);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.token))
             .json(reservation)

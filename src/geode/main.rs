@@ -1,4 +1,4 @@
-use crystal::strategy::All;
+use crystal::strategy::{Count,All};
 use crystal::request::Client;
 
 #[tokio::main]
@@ -11,5 +11,9 @@ async fn main() {
         .await
         .unwrap();
 
-    product.reserve_all(&All).await;
+    log::info!("Reserving all variants...");
+    for i in 1..21 {
+        let _ = product.reserve_all(&Count { count: i }).await;
+    }
+    log::info!("Done");
 }
