@@ -1,6 +1,5 @@
 use crate::sale::{Sale, SaleClient};
 use serde::{Deserialize, Serialize};
-use std::env;
 
 const KIDE_API_BASE_URL: &str = "https://api.kide.app/api/";
 

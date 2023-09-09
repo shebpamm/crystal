@@ -1,4 +1,8 @@
+use crystal::db::do_migrations;
+use crystal::queue::connect_to_queue;
 use crystal::task::ScalpingTask;
+use crystal::worker::create_worker_pool;
+
 use dotenvy::dotenv;
 use fang::asynk::async_queue::AsyncQueue;
 use fang::asynk::async_queue::AsyncQueueable;
@@ -23,17 +27,9 @@ async fn main() {
     env_logger::init();
     let cli = Cli::parse();
 
-    let database_url = env::var("PRODUCTION_DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("PROD_DATABASE_URL").expect("PROD_DATABASE_URL must be set");
 
     log::info!("Starting...");
-    let max_pool_size: u32 = 3;
-    let mut queue = AsyncQueue::builder()
-        .uri(database_url)
-        .max_pool_size(max_pool_size)
-        .build();
-
-    queue.connect(NoTls).await.unwrap();
-    log::info!("Queue connected...");
 
     let event_id = cli.url.split("/").last().unwrap();
     let token = env::var("KIDE_API_TOKEN").expect("KIDE_API_TOKEN must be set");
@@ -45,6 +41,10 @@ async fn main() {
             .unwrap();
         return;
     }
+
+    // Connect to queue
+    let mut queue = connect_to_queue(database_url).await;
+    log::info!("Queue connected...");
 
     // Queue new task for workers
     let test_task = ScalpingTask::new(
