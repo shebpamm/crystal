@@ -34,7 +34,9 @@ pub struct Product {
     pub date_sales_until: DateTime<Utc>,
     pub is_favorited: bool,
     pub availability: i64,
+    #[serde(default)]
     pub max_price: Price,
+    #[serde(default)]
     pub min_price: Price,
     pub has_free_inventory_items: bool,
     pub has_inventory_items: bool,

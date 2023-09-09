@@ -6,10 +6,23 @@ use fang::AsyncRunnable;
 use fang::NoTls;
 use std::env;
 
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[clap(short, long)]
+    direct: bool,
+
+    url: String,
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
     env_logger::init();
+    let cli = Cli::parse();
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     log::info!("Starting...");
@@ -22,10 +35,20 @@ async fn main() {
     queue.connect(NoTls).await.unwrap();
     log::info!("Queue connected...");
 
+    let event_id = cli.url.split("/").last().unwrap();
     let token = env::var("KIDE_API_TOKEN").expect("KIDE_API_TOKEN must be set");
 
+    // Run locally?
+    if cli.direct {
+        crystal::scalp::scalp(event_id.to_string(), token)
+            .await
+            .unwrap();
+        return;
+    }
+
+    // Queue new task for workers
     let test_task = ScalpingTask::new(
-        "22b2e772-5889-4b18-bae9-24a3d05bfe3f".to_string(),
+        event_id.to_string(),
         token,
         chrono::Utc::now() + chrono::Duration::seconds(5),
     );

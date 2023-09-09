@@ -8,8 +8,7 @@ use fang::FangError;
 use fang::Scheduled;
 use tokio::time::Duration;
 
-use crate::request::Client;
-use crate::strategy::Count;
+use crate::scalp::scalp;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
@@ -33,40 +32,10 @@ impl ScalpingTask {
 #[typetag::serde]
 impl AsyncRunnable for ScalpingTask {
     async fn run(&self, _queue: &mut dyn AsyncQueueable) -> Result<(), FangError> {
-        let client = Client::new(self.account_token.clone());
-        let sale_client = client.product(self.event_id.clone()).await.unwrap();
-
-        // Block until the sale starts.
-        // If there's over 2 seconds left until the sale starts, sleep for 1 second and
-        // recheck.
-        // If there's less than 2 seconds left until the sale starts, sleep for only 0.1 seconds.
-        if sale_client.sale.variants.len() == 0 {
-            log::debug!("Waiting for sale to start...");
-            loop {
-                let now = Utc::now();
-                let diff = self.sale_start - now;
-                log::debug!("{} seconds until sale starts", diff.num_seconds());
-                if diff.num_seconds() > 2 {
-                    tokio::time::sleep(Duration::from_millis(1000)).await;
-                } else {
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                }
-
-                let sale_client = client.product(self.event_id.clone()).await.unwrap();
-                if sale_client.sale.variants.len() > 0 {
-                    break;
-                }
-            }
-        }
-
-        // Begin reserving tickets
-        log::info!("Reserving all variants...");
-        for i in 1..21 {
-            let _ = sale_client.reserve_all(&Count { count: i }).await;
-        }
-        log::info!("Done");
-
-        Ok(())
+        scalp(
+            self.event_id.clone(),
+            self.account_token.clone(),
+        ).await
     }
 
     fn cron(&self) -> Option<Scheduled> {
