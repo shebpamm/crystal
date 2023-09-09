@@ -86,6 +86,7 @@ pub struct Variant {
 pub struct AccessControlMembership {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub description: String,
     pub media_filename: String,
     pub form: String,
@@ -100,6 +101,7 @@ pub struct AccessControlMembership {
 pub struct GrantedBy {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub description: String,
     pub media_filename: Option<String>,
     pub inventory_id: String,

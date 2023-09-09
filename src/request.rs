@@ -67,6 +67,7 @@ impl Client {
             .get(&url)
             .send()
             .await?;
+        log::debug!("Response: {:#?}", response);
         let response_document: ProductResponse = response.json().await?;
 
         return Ok(SaleClient {

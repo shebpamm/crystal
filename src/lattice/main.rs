@@ -1,4 +1,4 @@
-use crystal::strategy::{Single,All};
+use crystal::strategy::{Single,All,Count};
 use crystal::request::Client;
 use crystal::sale::SaleClient;
 use tokio::task::JoinSet;
@@ -8,13 +8,15 @@ async fn test_get(client: Client) {
         println!("{}", p.sale.product.name);
 }
 
-async fn test_reserve(sc: SaleClient) {
-    sc.reserve_all(&Single).await;
-    println!("Reserved variants");
+async fn test_reserve(sc: SaleClient, count: i64) {
+    sc.reserve_all(&Count { count }).await;
+    println!("Reserved {}", count);
 }
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let client = Client::new();
     let mut set = JoinSet::new();
 
@@ -23,8 +25,8 @@ async fn main() {
         .await
         .unwrap();
 
-    for _ in 1..20 {
-        set.spawn(test_reserve(product.clone()));
+    for i in 1..20 {
+        set.spawn(test_reserve(product.clone(), i));
     }
 
     while let Some(_res) = set.join_next().await {

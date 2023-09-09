@@ -13,6 +13,16 @@ impl Quantity for Single {
     }
 }
 
+pub struct Count {
+    pub count: i64,
+}
+
+impl Quantity for Count {
+    fn quantity(&self, _variant: &Variant) -> i64 {
+        self.count
+    }
+}
+
 pub struct All;
 
 impl Quantity for All {
