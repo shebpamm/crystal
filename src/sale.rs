@@ -34,7 +34,7 @@ impl SaleClient {
 
     pub async fn reserve_all(&self, strategy: &impl Quantity) {
         let mut total_quantity = 0;
-        let reservations = self
+        let reservations: Vec<VariantReservation> = self
             .sale
             .variants
             .iter()
@@ -54,6 +54,11 @@ impl SaleClient {
             && total_quantity > self.sale.product.max_total_reservations_per_checkout
         {
             println!("Too many variants to reserve");
+            return;
+        }
+
+        if reservations.is_empty() {
+            println!("No variants to reserve");
             return;
         }
 
