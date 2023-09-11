@@ -1,5 +1,6 @@
 use crystal::queue::connect_to_queue;
 use crystal::task::ScalpingTask;
+use crystal::request::Client;
 
 use dotenvy::dotenv;
 use fang::asynk::async_queue::AsyncQueueable;
@@ -42,11 +43,15 @@ async fn main() {
     let mut queue = connect_to_queue(database_url).await;
     log::info!("Queue connected...");
 
+    // Fetch event details
+    let client = Client::new(token.clone());
+    let sale_client = client.product(event_id.to_string()).await.unwrap();
+
     // Queue new task for workers
     let test_task = ScalpingTask::new(
         event_id.to_string(),
         token,
-        chrono::Utc::now() + chrono::Duration::seconds(5),
+        sale_client.sale.product.date_sales_from,
     );
 
     queue
