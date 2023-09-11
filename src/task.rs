@@ -40,7 +40,7 @@ impl AsyncRunnable for ScalpingTask {
 
     fn cron(&self) -> Option<Scheduled> {
         Some(Scheduled::ScheduleOnce(
-            self.sale_start - Duration::from_secs(2),
+            self.sale_start - Duration::from_secs(10),
         ))
     }
 
