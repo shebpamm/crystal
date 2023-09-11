@@ -63,6 +63,7 @@ pub struct Price {
 pub struct Variant {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub description: String,
     pub inventory_id: String,
     pub currency_code: String,
