@@ -48,14 +48,14 @@ async fn main() {
     let sale_client = client.product(event_id.to_string()).await.unwrap();
 
     // Queue new task for workers
-    let test_task = ScalpingTask::new(
+    let task = ScalpingTask::new(
         event_id.to_string(),
         token,
         sale_client.sale.product.date_sales_from,
     );
 
     queue
-        .schedule_task(&test_task as &dyn AsyncRunnable)
+        .schedule_task(&task as &dyn AsyncRunnable)
         .await
         .unwrap();
 }
