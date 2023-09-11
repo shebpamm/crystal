@@ -9,6 +9,7 @@
     mysql80
     terraform
     azure-cli
+    cargo-chef
     gdb
   ];
 

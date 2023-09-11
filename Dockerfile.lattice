@@ -1,21 +1,27 @@
-# Start with a rust alpine image
-FROM rust:1-alpine3.18
-# This is important, see https://github.com/rust-lang/docker-rust/issues/85
-ENV RUSTFLAGS="-C target-feature=-crt-static"
-# if needed, add additional dependencies here
-RUN apk add --no-cache musl-dev mariadb-dev openssl-dev libpq-dev sqlite-dev
-# set the workdir and copy the source into it
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /app
-COPY ./ /app
-# do a release build
-RUN cargo build --release
-RUN strip target/release/lattice
 
-# use a plain alpine image, the alpine version needs to match the builder
-FROM alpine:3.18
-# if needed, install additional dependencies here
-RUN apk add --no-cache libgcc mariadb-dev openssl-dev libpq-dev sqlite-dev
-# copy the binary into the final image
-COPY --from=0 /app/target/release/lattice .
-# set the binary as entrypoint
-ENTRYPOINT ["./lattice"]
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Build application
+COPY . .
+RUN cargo build --release --bin lattice
+
+# We do not need the Rust toolchain to run the binary!
+FROM debian:buster-slim AS runtime
+WORKDIR /app
+COPY --from=builder /app/target/release/lattice /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/lattice"]
