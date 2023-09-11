@@ -1,0 +1,11 @@
+version: '3.1'
+
+services:
+
+  lattice:
+    image: crystalimages.azurecr.io/sheb/lattice:latest
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - RUST_LOG=tokio_postgres=info,debug
