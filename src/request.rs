@@ -59,6 +59,8 @@ impl Client {
         log::debug!("Response: {:#?}", response);
         let response_document: ProductResponse = response.json().await?;
 
+        log::debug!("Response document: {:#?}", response_document);
+
         return Ok(SaleClient {
             sale: response_document.model,
             client: self.clone(),
@@ -79,6 +81,7 @@ impl Client {
             .await?;
 
         log::debug!("Response: {:#?}", response);
+        log::debug!("Response body: {:#?}", response.text().await?);
 
         Ok(())
     }
