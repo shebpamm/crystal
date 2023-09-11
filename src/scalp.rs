@@ -10,7 +10,7 @@ pub async fn scalp(
     account_token: String,
 ) -> Result<(), FangError> {
     let client = Client::new(account_token);
-    let sale_client = client.product(event_id.clone()).await.unwrap();
+    let mut sale_client = client.product(event_id.clone()).await.unwrap();
 
     // Block until the sale starts.
     // If there's over 2 seconds left until the sale starts, sleep for 1 second and
@@ -28,7 +28,7 @@ pub async fn scalp(
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
-            let sale_client = client.product(event_id.clone()).await.unwrap();
+            sale_client = client.product(event_id.clone()).await.unwrap();
             if sale_client.sale.variants.len() > 0 {
                 break;
             }
