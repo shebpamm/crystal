@@ -55,7 +55,7 @@ async fn main() {
     );
 
     queue
-        .insert_task(&test_task as &dyn AsyncRunnable)
+        .schedule_task(&test_task as &dyn AsyncRunnable)
         .await
         .unwrap();
 }
