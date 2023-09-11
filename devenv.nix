@@ -9,6 +9,7 @@
     mysql80
     terraform
     azure-cli
+    gdb
   ];
 
   languages.rust.enable = true;
