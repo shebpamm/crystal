@@ -29,7 +29,7 @@ spec:
           image: crystalimages.azurecr.io/sheb/lattice:latest
           env:
             - name: RUST_LOG
-              value: crystal::scalp=debug,info
+              value: tokio_postgres=info,debug
 
             - name: PROD_DATABASE_URL
               valueFrom:
