@@ -21,7 +21,12 @@ COPY . .
 RUN cargo build --release --bin lattice
 
 # We do not need the Rust toolchain to run the binary!
-FROM debian:buster-slim AS runtime
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 \
+    libpq5 \
+    ca-certificates \ 
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/target/release/lattice /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/lattice"]
