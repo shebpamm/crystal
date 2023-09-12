@@ -38,7 +38,7 @@ pub async fn scalp(
 
     // Begin reserving tickets
     log::info!("Reserving all variants...");
-    log::debug!("Using following info: {:?}", sale_client.sale);
+    log::trace!("Using following info: {:?}", sale_client.sale);
     let measurement_begin = Instant::now();
     for i in 1..21 {
         let _ = sale_client.reserve_all(&Count { count: i }).await;

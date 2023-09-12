@@ -56,10 +56,10 @@ impl Client {
     pub async fn product(&self, uid: String) -> Result<SaleClient, reqwest::Error> {
         let url = format!("{}products/{}", KIDE_API_BASE_URL, uid);
         let response = self.client.get(&url).send().await?;
-        log::debug!("Response: {:#?}", response);
-        let response_document: ProductResponse = response.json().await?;
+        log::trace!("Response: {:#?}", response);
 
-        log::debug!("Response document: {:#?}", response_document);
+        let response_document: ProductResponse = response.json().await?;
+        log::trace!("Response document: {:#?}", response_document);
 
         return Ok(SaleClient {
             sale: response_document.model,
@@ -80,8 +80,8 @@ impl Client {
             .send()
             .await?;
 
-        log::debug!("Response: {:#?}", response);
-        log::debug!("Response body: {:#?}", response.text().await?);
+        log::trace!("Response: {:#?}", response);
+        log::trace!("Response body: {:#?}", response.text().await?);
 
         Ok(())
     }
