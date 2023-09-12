@@ -8,4 +8,4 @@ services:
     env_file:
       - .env
     environment:
-      - RUST_LOG=tokio_postgres=info,debug
+      - RUST_LOG=tokio_postgres=info,crystal=trace,debug
