@@ -10,7 +10,10 @@ use crystal::worker::create_worker_pool;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    env_logger::init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .format_timestamp_millis()
+        .init();
 
     // Typetag is not able to detect the use of this if we don't artificially use it here.
     //
