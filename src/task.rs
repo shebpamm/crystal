@@ -12,17 +12,18 @@ use crate::scalp::scalp;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
+#[serde(rename_all = "camelCase")]
 pub struct ScalpingTask {
     pub event_id: String,
-    pub account_token: String,
+    pub account_ids: Vec<String>,
     pub sale_start: DateTime<Utc>,
 }
 
 impl ScalpingTask {
-    pub fn new(event_id: String, account_token: String, sale_start: DateTime<Utc>) -> Self {
+    pub fn new(event_id: String, account_ids: Vec<String>, sale_start: DateTime<Utc>) -> Self {
         Self {
             event_id,
-            account_token,
+            account_ids,
             sale_start,
         }
     }
@@ -34,8 +35,10 @@ impl AsyncRunnable for ScalpingTask {
     async fn run(&self, _queue: &mut dyn AsyncQueueable) -> Result<(), FangError> {
         scalp(
             self.event_id.clone(),
-            self.account_token.clone(),
-        ).await
+            self.account_ids.clone(),
+        ).await?;
+
+        Ok(())
     }
 
     fn cron(&self) -> Option<Scheduled> {

@@ -33,11 +33,10 @@ async fn main() {
     initialize_db_manager(database_url.clone()).await;
 
     let event_id = cli.url.split("/").last().unwrap();
-    let token = env::var("KIDE_API_TOKEN").expect("KIDE_API_TOKEN must be set");
 
     // Run locally?
     if cli.direct {
-        crystal::scalp::scalp(event_id.to_string(), token)
+        crystal::scalp::scalp(event_id.to_string(), vec!["1".to_owned()])
             .await
             .unwrap();
         return;
@@ -48,13 +47,13 @@ async fn main() {
     log::info!("Queue connected...");
 
     // Fetch event details
-    let client = Client::new(token.clone());
+    let client = Client::new();
     let sale_client = client.product(event_id.to_string()).await.unwrap();
 
     // Queue new task for workers
     let task = ScalpingTask::new(
         event_id.to_string(),
-        token,
+        vec!["1".to_owned()],
         sale_client.sale.product.date_sales_from,
     );
 

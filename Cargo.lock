@@ -336,6 +336,7 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "fang",
+ "futures",
  "log",
  "native-tls",
  "once_cell",
@@ -344,6 +345,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
+ "thiserror",
  "tokio",
  "tokio-postgres",
 ]

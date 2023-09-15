@@ -13,6 +13,7 @@ async fn main() {
     dotenv().ok();
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
+        .parse_default_env()
         .format_timestamp_millis()
         .init();
 
@@ -21,7 +22,7 @@ async fn main() {
     // https://github.com/dtolnay/typetag/issues/35
     let _: Box<dyn AsyncRunnable> = Box::new(ScalpingTask::new(
         "".to_owned(),
-        "".to_owned(),
+        vec!["".to_owned()],
         chrono::Utc::now(),
     ));
 

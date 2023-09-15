@@ -1,15 +1,62 @@
 use chrono::Utc;
-
-use crate::request::Client;
-use crate::strategy::Count;
 use fang::FangError;
-use std::time::{Duration,Instant};
+use futures::future::join_all;
+use std::time::{Duration, Instant};
 
-pub async fn scalp(
-    event_id: String,
-    account_token: String,
+use crate::account::KideAccount;
+use crate::db::get_db_manager;
+use crate::request::Client;
+use crate::sale::SaleClient;
+use crate::strategy::Count;
+
+async fn fetch_accounts(account_ids: Vec<String>) -> Result<Vec<KideAccount>, FangError> {
+    let db_manager = get_db_manager();
+    let mut accounts = Vec::new();
+
+    for account_id in account_ids {
+        // TODO: Change to using UUIDs and not serials, so just cast to int for now...
+        let account_id: i32 = account_id.parse().unwrap();
+
+        log::trace!("Fetching account {}...", account_id);
+        let row = db_manager
+            .query_one("SELECT * FROM kideaccounts WHERE id = $1", &[&account_id])
+            .await?;
+        log::trace!("Fetched row {:#?}", row);
+        let account = KideAccount::try_from(&row)?;
+        accounts.push(account);
+    }
+
+    Ok(accounts)
+}
+
+async fn reserve_in_succession(
+    sale_client: SaleClient,
+    account: KideAccount,
+    count: i64,
 ) -> Result<(), FangError> {
-    let client = Client::new(account_token);
+    for i in 1..count + 1 {
+        let _ = sale_client
+            .reserve_all(account.token.clone(), &Count { count: i })
+            .await;
+        log::debug!(
+            "Reserved ticket {} of {} for account {}",
+            i,
+            count,
+            account.name
+        );
+    }
+
+    Ok(())
+}
+
+pub async fn scalp(event_id: String, account_ids: Vec<String>) -> Result<(), FangError> {
+    // Fetch the accounts from the database
+    log::debug!("Fetching accounts...");
+    let accounts = fetch_accounts(account_ids).await?;
+
+    // Initialize the connection to the kide api
+    log::debug!("Initializing client...");
+    let client = Client::new();
     let mut sale_client = client.product(event_id.clone()).await.unwrap();
 
     // Block until the sale starts.
@@ -35,14 +82,16 @@ pub async fn scalp(
         }
     }
 
-
     // Begin reserving tickets
     log::info!("Reserving all variants...");
     log::trace!("Using following info: {:?}", sale_client.sale);
     let measurement_begin = Instant::now();
-    for i in 1..21 {
-        let _ = sale_client.reserve_all(&Count { count: i }).await;
-    }
+
+    let reserve_jobs = accounts
+        .into_iter()
+        .map(|account| reserve_in_succession(sale_client.clone(), account, 20));
+    join_all(reserve_jobs).await;
+
     let execution_time = measurement_begin.elapsed().as_millis();
     log::debug!("Execution took {}ms", execution_time);
     log::info!("Done");

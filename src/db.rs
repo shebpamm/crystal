@@ -2,17 +2,21 @@ use diesel::pg::Pg;
 use diesel::Connection;
 use diesel::PgConnection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use fang::run_migrations_postgres;
-use native_tls::TlsConnector;
-use once_cell::sync::OnceCell;
-use postgres_native_tls::MakeTlsConnector;
-use snafu::{ResultExt, Snafu};
+
 use tokio_postgres;
 use tokio_postgres::types::ToSql;
 use tokio_postgres::{Row, ToStatement};
 
 use bb8_postgres::bb8::{Pool, PooledConnection, RunError};
 use bb8_postgres::PostgresConnectionManager;
+
+use fang::run_migrations_postgres;
+use fang::{FangError,ToFangError};
+
+use native_tls::TlsConnector;
+use once_cell::sync::OnceCell;
+use postgres_native_tls::MakeTlsConnector;
+use std::fmt::Debug;
 
 static DB_MANAGER_INSTANCE: OnceCell<DBManager> = OnceCell::new();
 
@@ -62,13 +66,13 @@ pub type DBPool = Pool<PostgresConnectionManager<MakeTlsConnector>>;
 pub type PostgresConnectionError = RunError<tokio_postgres::error::Error>;
 
 // Provide a contexts for better error handling
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("ConnectionError: {}", source))]
-    ConnectionError { source: PostgresConnectionError },
+#[derive(thiserror::Error, Debug, ToFangError)]
+pub enum DBError {
+    #[error("Postgres connection error")]
+    ConnectionError(#[from] PostgresConnectionError),
 
-    #[snafu(display("PostgresError: {}", source))]
-    PostgresError { source: tokio_postgres::Error },
+    #[error("Postgres error")]
+    PostgresError(#[from] tokio_postgres::error::Error),
 }
 
 pub struct DBOptions {
@@ -88,7 +92,7 @@ impl DBManager {
     }
 
     // Create the DBManager instance using DBOptions
-    pub async fn new(config: DBOptions) -> Result<Self, Error> {
+    pub async fn new(config: DBOptions) -> Result<Self, DBError> {
         let DBOptions {
             pg_params,
             pool_max_size,
@@ -101,15 +105,14 @@ impl DBManager {
         let pool = Pool::builder()
             .max_size(pool_max_size)
             .build(manager)
-            .await
-            .context(PostgresSnafu)?;
+            .await?;
 
         Ok(Self { pool })
     }
 
     // Helper to get a connection from the bb8 pool
-    pub async fn connection(&self) -> Result<DBConnection<'_>, Error> {
-        let conn = self.pool.get().await.context(ConnectionSnafu)?;
+    pub async fn connection(&self) -> Result<DBConnection<'_>, DBError> {
+        let conn = self.pool.get().await?;
         Ok(conn)
     }
 
@@ -118,12 +121,12 @@ impl DBManager {
         &self,
         statement: &T,
         params: &[&(dyn ToSql + Sync)],
-    ) -> Result<Vec<Row>, Error>
+    ) -> Result<Vec<Row>, DBError>
     where
         T: ?Sized + ToStatement,
     {
         let conn = self.connection().await?;
-        let rows = conn.query(statement, params).await.context(PostgresSnafu)?;
+        let rows = conn.query(statement, params).await?;
         Ok(rows)
     }
 
@@ -132,15 +135,14 @@ impl DBManager {
         &self,
         statement: &T,
         params: &[&(dyn ToSql + Sync)],
-    ) -> Result<Row, Error>
+    ) -> Result<Row, DBError>
     where
         T: ?Sized + ToStatement,
     {
         let conn = self.connection().await?;
         let row = conn
             .query_one(statement, params)
-            .await
-            .context(PostgresSnafu)?;
+            .await?;
         Ok(row)
     }
 }

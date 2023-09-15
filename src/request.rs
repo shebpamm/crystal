@@ -42,14 +42,12 @@ impl BatchReservation {
 #[derive(Default, Debug, Clone)]
 pub struct Client {
     client: reqwest::Client,
-    token: String,
 }
 
 impl Client {
-    pub fn new(token: String) -> Self {
+    pub fn new() -> Self {
         Client {
             client: reqwest::Client::builder().build().unwrap(),
-            token
         }
     }
 
@@ -67,7 +65,7 @@ impl Client {
         });
     }
 
-    pub async fn reserve(&self, reservation: &BatchReservation) -> Result<(), reqwest::Error> {
+    pub async fn reserve(&self, reservation: &BatchReservation, token: String) -> Result<(), reqwest::Error> {
         log::debug!("Reserving reservation: {:?}", reservation);
 
         let url = format!("{}reservations", KIDE_API_BASE_URL);
@@ -75,7 +73,7 @@ impl Client {
         let response = self
             .client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", token))
             .json(reservation)
             .send()
             .await?;
