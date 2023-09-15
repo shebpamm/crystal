@@ -47,7 +47,7 @@ pub struct Client {
 impl Client {
     pub fn new() -> Self {
         Client {
-            client: reqwest::Client::builder().build().unwrap(),
+            client: reqwest::Client::builder().gzip(true).build().unwrap(),
         }
     }
 
@@ -65,7 +65,11 @@ impl Client {
         });
     }
 
-    pub async fn reserve(&self, reservation: &BatchReservation, token: String) -> Result<(), reqwest::Error> {
+    pub async fn reserve(
+        &self,
+        reservation: &BatchReservation,
+        token: String,
+    ) -> Result<(), reqwest::Error> {
         log::debug!("Reserving reservation: {:?}", reservation);
 
         let url = format!("{}reservations", KIDE_API_BASE_URL);
