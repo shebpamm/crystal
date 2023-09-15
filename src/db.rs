@@ -145,4 +145,20 @@ impl DBManager {
             .await?;
         Ok(row)
     }
+
+    // Perform a query_opt from a fetched bb8 connection
+    pub async fn query_opt<T>(
+        &self,
+        statement: &T,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<Option<Row>, DBError>
+    where
+        T: ?Sized + ToStatement,
+    {
+        let conn = self.connection().await?;
+        let row = conn
+            .query_opt(statement, params)
+            .await?;
+        Ok(row)
+    }
 }

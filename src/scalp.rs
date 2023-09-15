@@ -3,31 +3,10 @@ use fang::FangError;
 use futures::future::join_all;
 use std::time::{Duration, Instant};
 
-use crate::account::KideAccount;
-use crate::db::get_db_manager;
+use crate::account::{KideAccount,fetch_kide_accounts};
 use crate::request::Client;
 use crate::sale::SaleClient;
 use crate::strategy::Count;
-
-async fn fetch_accounts(account_ids: Vec<String>) -> Result<Vec<KideAccount>, FangError> {
-    let db_manager = get_db_manager();
-    let mut accounts = Vec::new();
-
-    for account_id in account_ids {
-        // TODO: Change to using UUIDs and not serials, so just cast to int for now...
-        let account_id: i32 = account_id.parse().unwrap();
-
-        log::trace!("Fetching account {}...", account_id);
-        let row = db_manager
-            .query_one("SELECT * FROM kideaccounts WHERE id = $1", &[&account_id])
-            .await?;
-        log::trace!("Fetched row {:#?}", row);
-        let account = KideAccount::try_from(&row)?;
-        accounts.push(account);
-    }
-
-    Ok(accounts)
-}
 
 async fn reserve_in_succession(
     sale_client: SaleClient,
@@ -52,7 +31,7 @@ async fn reserve_in_succession(
 pub async fn scalp(event_id: String, account_ids: Vec<String>) -> Result<(), FangError> {
     // Fetch the accounts from the database
     log::debug!("Fetching accounts...");
-    let accounts = fetch_accounts(account_ids).await?;
+    let accounts = fetch_kide_accounts(account_ids).await?;
 
     // Initialize the connection to the kide api
     log::debug!("Initializing client...");

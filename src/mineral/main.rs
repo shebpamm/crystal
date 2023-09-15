@@ -1,18 +1,45 @@
-use crystal::schema::{Context, DatabasePool, Mutation, Query, Schema};
-use juniper::{EmptySubscription, Variables};
+use crystal::db::initialize_db_manager;
+use crystal::graphql::{Context, Query, Schema};
+use crystal::queue::connect_to_queue;
+use dotenvy::dotenv;
+use juniper::{EmptyMutation, EmptySubscription, Variables};
+use std::env;
 
-fn main() {
-    let pool = DatabasePool {};
-    let ctx = Context { pool };
-    let schema = Schema::new(Query, Mutation {}, EmptySubscription::new());
+#[tokio::main]
+async fn main() {
+    dotenv().ok();
+    env_logger::init();
 
-    let (res, errors) = juniper::execute_sync(
-        "query { task(id : \"123\") { eventId } }",
+    let database_url = env::var("PROD_DATABASE_URL").expect("PROD_DATABASE_URL must be set");
+
+    log::info!("Starting...");
+
+    // Initialize DB Pool for crystal operations
+    initialize_db_manager(database_url.clone()).await;
+
+    let queue = connect_to_queue(database_url).await;
+
+    let ctx = Context { queue };
+    let schema = Schema::new(Query {}, EmptyMutation::new(), EmptySubscription::new());
+
+    let (res, errors) = juniper::execute(
+        "query { 
+            task(eventId: \"a3f5565d-795e-49e1-8523-6daa2622316f\") { 
+                eventId 
+                accounts { 
+                    id 
+                    name 
+                    token 
+                } 
+                saleStart
+            } 
+        }",
         None,
         &schema,
         &Variables::new(),
         &ctx,
     )
+    .await
     .unwrap();
 
     println!("res: {:#?}", res);

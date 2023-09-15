@@ -6,14 +6,12 @@ use fang::typetag;
 use fang::AsyncRunnable;
 use fang::FangError;
 use fang::Scheduled;
-use juniper::GraphQLObject;
 use tokio::time::Duration;
-
 use crate::scalp::scalp;
+use tokio_postgres::Row;
 
-#[derive(Serialize, Deserialize, GraphQLObject)]
+#[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
-#[graphql(description = "A scheduled reservation task for a specific event")]
 #[serde(rename_all = "camelCase")]
 pub struct ScalpingTask {
     pub event_id: String,
@@ -31,14 +29,21 @@ impl ScalpingTask {
     }
 }
 
+impl<'a> TryFrom<&'a Row> for ScalpingTask {
+    type Error = anyhow::Error;
+
+    fn try_from(row: &'a Row) -> Result<Self, anyhow::Error> {
+        let data = row.try_get("metadata")?;
+
+        Ok(serde_json::from_value(data)?)
+    }
+}
+
 #[async_trait]
 #[typetag::serde]
 impl AsyncRunnable for ScalpingTask {
     async fn run(&self, _queue: &mut dyn AsyncQueueable) -> Result<(), FangError> {
-        scalp(
-            self.event_id.clone(),
-            self.account_ids.clone(),
-        ).await?;
+        scalp(self.event_id.clone(), self.account_ids.clone()).await?;
 
         Ok(())
     }

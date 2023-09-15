@@ -1,12 +1,11 @@
-use fang::asynk::async_queue::AsyncQueue;
 use fang::asynk::async_worker_pool::AsyncWorkerPool;
 use fang::SleepParams;
 use std::time::Duration;
-use postgres_native_tls::MakeTlsConnector;
+use crate::queue::Queue;
 
 pub fn create_worker_pool(
-    queue: AsyncQueue<MakeTlsConnector>,
-) -> AsyncWorkerPool<AsyncQueue<MakeTlsConnector>> {
+    queue: Queue,
+) -> AsyncWorkerPool<Queue> {
     let sleep_params = SleepParams::builder()
         .sleep_period(Duration::from_secs(1))
         .min_sleep_period(Duration::from_secs(1))

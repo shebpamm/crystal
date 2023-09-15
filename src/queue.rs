@@ -2,7 +2,9 @@ use fang::asynk::async_queue::AsyncQueue;
 use postgres_native_tls::MakeTlsConnector;
 use crate::db::create_db_connector;
 
-pub async fn connect_to_queue(database_url: String) -> AsyncQueue<MakeTlsConnector> {
+pub type Queue = AsyncQueue<MakeTlsConnector>;
+
+pub async fn connect_to_queue(database_url: String) -> Queue {
     let max_pool_size: u32 = 3;
     let mut queue = AsyncQueue::builder()
         .uri(database_url)
