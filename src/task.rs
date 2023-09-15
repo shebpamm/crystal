@@ -6,12 +6,14 @@ use fang::typetag;
 use fang::AsyncRunnable;
 use fang::FangError;
 use fang::Scheduled;
+use juniper::GraphQLObject;
 use tokio::time::Duration;
 
 use crate::scalp::scalp;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, GraphQLObject)]
 #[serde(crate = "fang::serde")]
+#[graphql(description = "A scheduled reservation task for a specific event")]
 #[serde(rename_all = "camelCase")]
 pub struct ScalpingTask {
     pub event_id: String,

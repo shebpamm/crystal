@@ -14,6 +14,7 @@ diesel_migrations = "2.1.0"
 dotenvy = "0.15.7"
 env_logger = "0.10.0"
 fang = { default-features = false, rev = "0.10.4.1", features = ["blocking", "asynk", "derive-error", "postgres", "migrations_postgres"], git = "https://github.com/ayrat555/fang" }
+juniper = "0.15.11"
 futures = "0.3.28"
 gzip = "0.1.2"
 log = "0.4.20"
@@ -35,3 +36,7 @@ path = "src/lattice/main.rs"
 [[bin]]
 name = "geode"
 path = "src/geode/main.rs"
+
+[[bin]]
+name = "mineral"
+path = "src/mineral/main.rs"
