@@ -58,7 +58,7 @@ async fn main() {
             if direct {
                 run_task(event_id.to_string(), account_ids).await;
             } else {
-                add_task(url, account_ids, database_url).await;
+                add_task(event_id.to_string(), account_ids, database_url).await;
             }
         }
         Commands::Account { name, token } => {
