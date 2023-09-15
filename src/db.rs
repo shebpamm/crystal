@@ -1,5 +1,7 @@
+use diesel::pg::Pg;
 use diesel::Connection;
 use diesel::PgConnection;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use fang::run_migrations_postgres;
 use native_tls::TlsConnector;
 use once_cell::sync::OnceCell;
@@ -11,6 +13,10 @@ use tokio_postgres::{Row, ToStatement};
 
 use bb8_postgres::bb8::{Pool, PooledConnection, RunError};
 use bb8_postgres::PostgresConnectionManager;
+
+static DB_MANAGER_INSTANCE: OnceCell<DBManager> = OnceCell::new();
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 pub async fn initialize_db_manager(database_url: String) {
     let options = DBOptions {
@@ -26,6 +32,11 @@ pub fn do_migrations(database_url: String) {
     let mut connection = PgConnection::establish(&database_url).unwrap();
 
     run_migrations_postgres(&mut connection).unwrap();
+    run_crystal_migrations(&mut connection);
+}
+
+fn run_crystal_migrations(connection: &mut impl MigrationHarness<Pg>) {
+    connection.run_pending_migrations(MIGRATIONS).unwrap();
 }
 
 pub fn create_db_connector() -> MakeTlsConnector {
@@ -35,8 +46,6 @@ pub fn create_db_connector() -> MakeTlsConnector {
 
     MakeTlsConnector::new(connector)
 }
-
-static DB_MANAGER_INSTANCE: OnceCell<DBManager> = OnceCell::new();
 
 pub fn get_db_manager() -> &'static DBManager {
     DB_MANAGER_INSTANCE.get().unwrap()

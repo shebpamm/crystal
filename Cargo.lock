@@ -332,6 +332,7 @@ dependencies = [
  "chrono",
  "clap",
  "diesel",
+ "diesel_migrations",
  "dotenvy",
  "env_logger",
  "fang",
