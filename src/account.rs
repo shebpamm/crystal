@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tokio_postgres::Row;
+use crate::db::{get_db_manager, DBError};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +18,23 @@ impl <'a> TryFrom<&'a Row> for KideAccount {
             id: row.try_get("id")?,
             name: row.try_get("name")?,
             token: row.try_get("token")?,
+        })
+    }
+}
+
+impl KideAccount {
+    pub async fn create(name: String, token: String) -> Result<Self, DBError> {
+        let db_manager = get_db_manager();
+        let conn = db_manager.connection().await?;
+
+        let statement = conn.prepare("INSERT INTO kideaccounts (name, token) VALUES ($1, $2) RETURNING id").await?;
+        let row = conn.query_one(&statement, &[&name, &token]).await?;
+
+        let id: i32 = row.get(0);
+        Ok(Self {
+            id,
+            name,
+            token,
         })
     }
 }

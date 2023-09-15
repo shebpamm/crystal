@@ -1,22 +1,39 @@
+use crystal::db::initialize_db_manager;
 use crystal::queue::connect_to_queue;
 use crystal::request::Client;
 use crystal::task::ScalpingTask;
-use crystal::db::initialize_db_manager;
 
 use dotenvy::dotenv;
 use fang::asynk::async_queue::AsyncQueueable;
 use fang::AsyncRunnable;
 use std::env;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[clap(short, long)]
-    direct: bool,
+    #[command(subcommand)]
+    command: Commands,
+}
 
-    url: String,
+#[derive(Subcommand)]
+enum Commands {
+    Task {
+        // Run locally and don't delegate to queue
+        #[clap(short, long)]
+        direct: bool,
+
+        // Event URL
+        url: String,
+    },
+    Account {
+        // Nickname for account
+        name: String,
+
+        // JWT Token for account
+        token: String,
+    },
 }
 
 #[tokio::main]
@@ -32,16 +49,31 @@ async fn main() {
     // Initialize DB Pool for crystal operations
     initialize_db_manager(database_url.clone()).await;
 
-    let event_id = cli.url.split("/").last().unwrap();
+    match cli.command {
+        Commands::Task { url, direct } => {
+            let event_id = url.split("/").last().unwrap();
+            let account_ids = vec!["1".to_owned()];
 
-    // Run locally?
-    if cli.direct {
-        crystal::scalp::scalp(event_id.to_string(), vec!["1".to_owned()])
-            .await
-            .unwrap();
-        return;
+            // Run locally?
+            if direct {
+                run_task(event_id.to_string(), account_ids).await;
+            } else {
+                add_task(url, account_ids, database_url).await;
+            }
+        }
+        Commands::Account { name, token } => {
+            crystal::account::KideAccount::create(name, token).await.unwrap();
+        }
     }
+}
 
+async fn run_task(event_id: String, account_ids: Vec<String>) {
+    crystal::scalp::scalp(event_id.to_string(), account_ids)
+        .await
+        .unwrap();
+}
+
+async fn add_task(event_id: String, account_ids: Vec<String>, database_url: String) {
     // Connect & create pool to task queue
     let mut queue = connect_to_queue(database_url).await;
     log::info!("Queue connected...");
@@ -53,7 +85,7 @@ async fn main() {
     // Queue new task for workers
     let task = ScalpingTask::new(
         event_id.to_string(),
-        vec!["1".to_owned()],
+        account_ids,
         sale_client.sale.product.date_sales_from,
     );
 
