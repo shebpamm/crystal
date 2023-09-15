@@ -1,6 +1,7 @@
 use crystal::queue::connect_to_queue;
-use crystal::task::ScalpingTask;
 use crystal::request::Client;
+use crystal::task::ScalpingTask;
+use crystal::db::initialize_db_manager;
 
 use dotenvy::dotenv;
 use fang::asynk::async_queue::AsyncQueueable;
@@ -28,6 +29,9 @@ async fn main() {
 
     log::info!("Starting...");
 
+    // Initialize DB Pool for crystal operations
+    initialize_db_manager(database_url.clone()).await;
+
     let event_id = cli.url.split("/").last().unwrap();
     let token = env::var("KIDE_API_TOKEN").expect("KIDE_API_TOKEN must be set");
 
@@ -39,7 +43,7 @@ async fn main() {
         return;
     }
 
-    // Connect to queue
+    // Connect & create pool to task queue
     let mut queue = connect_to_queue(database_url).await;
     log::info!("Queue connected...");
 

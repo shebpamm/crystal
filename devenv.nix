@@ -11,6 +11,7 @@
     azure-cli
     cargo-chef
     gdb
+    diesel-cli
   ];
 
   languages.rust.enable = true;

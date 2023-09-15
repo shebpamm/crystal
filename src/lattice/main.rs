@@ -6,6 +6,7 @@ use std::env;
 use crystal::db::do_migrations;
 use crystal::queue::connect_to_queue;
 use crystal::worker::create_worker_pool;
+use crystal::db::initialize_db_manager;
 
 #[tokio::main]
 async fn main() {
@@ -29,10 +30,13 @@ async fn main() {
     log::info!("Running migrations...");
     do_migrations(database_url.clone());
 
-    log::info!("Connecting to database...");
-    let queue = connect_to_queue(database_url).await;
+    log::info!("Connecting to queue database...");
+    let queue = connect_to_queue(database_url.clone()).await;
 
     log::info!("Queue connected...");
+
+    log::info!("Initializing db manager...");
+    initialize_db_manager(database_url).await;
 
     let mut pool = create_worker_pool(queue);
 
