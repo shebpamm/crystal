@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, EmptyMutation, EmptySubscription, FieldResult, GraphQLObject};
+use uuid::Uuid;
 
 use crate::account::{fetch_all_kide_accounts, fetch_kide_accounts, KideAccount};
 use crate::db::get_db_manager;
@@ -28,11 +29,13 @@ pub struct Context {
     pub queue: Queue,
 }
 
+impl juniper::Context for Context {}
+
 pub struct Query {}
 
 #[graphql_object(context = Context)]
 impl Query {
-    fn apiVersion() -> &str {
+    fn api_version() -> &'static str {
         "1.0"
     }
 
@@ -86,9 +89,9 @@ impl Query {
         Ok(accounts)
     }
 
-    async fn kide_account(_context: &Context, id: String) -> FieldResult<Option<KideAccount>> {
+    async fn kide_account(_context: &Context, uuid: Uuid) -> FieldResult<Option<KideAccount>> {
         // TODO: Maybe separate fetch_kide_accounts into a fetch_kide_account and fetch_kide_accounts
-        let accounts = fetch_kide_accounts(vec![id]).await.unwrap();
+        let accounts = fetch_kide_accounts(vec![uuid]).await.unwrap();
         Ok(accounts.into_iter().next())
     }
 }

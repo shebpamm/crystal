@@ -24,8 +24,8 @@ async fn main() {
 
     let (res, errors) = juniper::execute(
         "query { 
-            kideAccount(id: \"3\") { 
-                id 
+            kideAccount(uuid: \"c749d6d4-3ede-44b1-b4e6-20b1f52b6a2c\") { 
+                uuid 
                 name 
                 token 
             } 

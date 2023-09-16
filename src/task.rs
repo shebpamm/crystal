@@ -1,3 +1,6 @@
+use crate::account::AccountIDList;
+use crate::scalp::scalp;
+
 use chrono::{DateTime, Utc};
 use fang::async_trait;
 use fang::asynk::async_queue::AsyncQueueable;
@@ -7,20 +10,20 @@ use fang::AsyncRunnable;
 use fang::FangError;
 use fang::Scheduled;
 use tokio::time::Duration;
-use crate::scalp::scalp;
 use tokio_postgres::Row;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct ScalpingTask {
     pub event_id: String,
-    pub account_ids: Vec<String>,
+    pub account_ids: Vec<Uuid>,
     pub sale_start: DateTime<Utc>,
 }
 
 impl ScalpingTask {
-    pub fn new(event_id: String, account_ids: Vec<String>, sale_start: DateTime<Utc>) -> Self {
+    pub fn new(event_id: String, account_ids: AccountIDList, sale_start: DateTime<Utc>) -> Self {
         Self {
             event_id,
             account_ids,

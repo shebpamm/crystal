@@ -1,3 +1,4 @@
+use crystal::account::AccountIDList;
 use crystal::db::initialize_db_manager;
 use crystal::queue::connect_to_queue;
 use crystal::request::Client;
@@ -7,6 +8,7 @@ use dotenvy::dotenv;
 use fang::asynk::async_queue::AsyncQueueable;
 use fang::AsyncRunnable;
 use std::env;
+use uuid::uuid;
 
 use clap::{Parser, Subcommand};
 
@@ -52,28 +54,33 @@ async fn main() {
     match cli.command {
         Commands::Task { url, direct } => {
             let event_id = url.split("/").last().unwrap();
-            let account_ids = vec!["1".to_owned(), "3".to_owned()];
+            let account_uuids = vec![
+                uuid!("58ce05ca-5c43-44d5-a5a7-a4b5a727b6ad"),
+                uuid!("c749d6d4-3ede-44b1-b4e6-20b1f52b6a2c"),
+            ];
 
             // Run locally?
             if direct {
-                run_task(event_id.to_string(), account_ids).await;
+                run_task(event_id.to_string(), account_uuids).await;
             } else {
-                add_task(event_id.to_string(), account_ids, database_url).await;
+                add_task(event_id.to_string(), account_uuids, database_url).await;
             }
         }
         Commands::Account { name, token } => {
-            crystal::account::KideAccount::create(name, token).await.unwrap();
+            crystal::account::KideAccount::create(name, token)
+                .await
+                .unwrap();
         }
     }
 }
 
-async fn run_task(event_id: String, account_ids: Vec<String>) {
+async fn run_task(event_id: String, account_ids: AccountIDList) {
     crystal::scalp::scalp(event_id.to_string(), account_ids)
         .await
         .unwrap();
 }
 
-async fn add_task(event_id: String, account_ids: Vec<String>, database_url: String) {
+async fn add_task(event_id: String, account_ids: AccountIDList, database_url: String) {
     // Connect & create pool to task queue
     let mut queue = connect_to_queue(database_url).await;
     log::info!("Queue connected...");

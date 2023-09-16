@@ -22,7 +22,7 @@ async fn main() {
     // https://github.com/dtolnay/typetag/issues/35
     let _: Box<dyn AsyncRunnable> = Box::new(ScalpingTask::new(
         "".to_owned(),
-        vec!["".to_owned()],
+        vec![],
         chrono::Utc::now(),
     ));
 

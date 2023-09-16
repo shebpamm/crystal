@@ -14,7 +14,7 @@ diesel_migrations = "2.1.0"
 dotenvy = "0.15.7"
 env_logger = "0.10.0"
 fang = { default-features = false, rev = "0.10.4.1", features = ["blocking", "asynk", "derive-error", "postgres", "migrations_postgres"], git = "https://github.com/ayrat555/fang" }
-juniper = "0.15.11"
+juniper = { git = "https://github.com/graphql-rust/juniper", features = ["chrono"] }
 futures = "0.3.28"
 gzip = "0.1.2"
 log = "0.4.20"
@@ -29,6 +29,7 @@ thiserror = "1.0.48"
 tokio = { version = "1.32.0", features = ["full"] }
 tokio-postgres = "0.7.10"
 anyhow = "1.0.75"
+uuid = { version = "1.3", features = ["serde"] }
 
 [[bin]]
 name = "lattice"
