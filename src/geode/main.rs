@@ -52,7 +52,7 @@ async fn main() {
     match cli.command {
         Commands::Task { url, direct } => {
             let event_id = url.split("/").last().unwrap();
-            let account_ids = vec!["1".to_owned()];
+            let account_ids = vec!["1".to_owned(), "3".to_owned()];
 
             // Run locally?
             if direct {
