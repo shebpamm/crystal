@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, EmptyMutation, EmptySubscription, FieldResult, GraphQLObject};
 
-use crate::account::{fetch_kide_accounts, KideAccount};
+use crate::account::{fetch_all_kide_accounts, fetch_kide_accounts, KideAccount};
 use crate::db::get_db_manager;
 use crate::queue::Queue;
 use crate::task::ScalpingTask;
@@ -79,6 +79,17 @@ impl Query {
             accounts,
             sale_start: task.sale_start,
         }))
+    }
+
+    async fn kide_accounts(_context: &Context) -> FieldResult<Vec<KideAccount>> {
+        let accounts = fetch_all_kide_accounts().await.unwrap();
+        Ok(accounts)
+    }
+
+    async fn kide_account(_context: &Context, id: String) -> FieldResult<Option<KideAccount>> {
+        // TODO: Maybe separate fetch_kide_accounts into a fetch_kide_account and fetch_kide_accounts
+        let accounts = fetch_kide_accounts(vec![id]).await.unwrap();
+        Ok(accounts.into_iter().next())
     }
 }
 

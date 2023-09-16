@@ -41,6 +41,19 @@ impl KideAccount {
     }
 }
 
+pub async fn fetch_all_kide_accounts() -> Result<Vec<KideAccount>, DBError> {
+    let db_manager = get_db_manager();
+    let rows = db_manager.query("SELECT * FROM kideaccounts", &[]).await?;
+
+    let mut accounts = Vec::new();
+    for row in rows {
+        let account = KideAccount::try_from(&row)?;
+        accounts.push(account);
+    }
+
+    Ok(accounts)
+}
+
 pub async fn fetch_kide_accounts(account_ids: Vec<String>) -> Result<Vec<KideAccount>, DBError> {
     let mut accounts = Vec::new();
     let db_manager = get_db_manager();

@@ -24,14 +24,10 @@ async fn main() {
 
     let (res, errors) = juniper::execute(
         "query { 
-            task(eventId: \"a3f5565d-795e-49e1-8523-6daa2622316f\") { 
-                eventId 
-                accounts { 
-                    id 
-                    name 
-                    token 
-                } 
-                saleStart
+            kideAccount(id: \"1\") { 
+                id 
+                name 
+                token 
             } 
         }",
         None,
