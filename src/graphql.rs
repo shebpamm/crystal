@@ -25,6 +25,8 @@ struct TaskOptions {
     target_name: Option<String>,
     use_regex: bool,
 }
+
+#[derive(Clone)]
 pub struct Context {
     pub queue: Queue,
 }

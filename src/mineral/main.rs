@@ -2,10 +2,41 @@ use crystal::db::initialize_db_manager;
 use crystal::graphql::{Context, Query, Schema};
 use crystal::queue::connect_to_queue;
 use dotenvy::dotenv;
-use juniper::{EmptyMutation, EmptySubscription, Variables};
+use juniper::{EmptyMutation, EmptySubscription};
 use std::env;
+use std::sync::Arc;
 
-#[tokio::main]
+use actix_cors::Cors;
+use actix_web::{
+    http::header,
+    middleware,
+    route,
+    web::{self, Data},
+    App, Error, HttpResponse, HttpServer, HttpRequest
+};
+use juniper_actix::{graphiql_handler, graphql_handler, playground_handler};
+
+#[route("/graphiql", method = "GET")]
+async fn graphiql_route() -> Result<HttpResponse, Error> {
+    graphiql_handler("/graphql", None).await
+}
+
+#[route("/playground", method = "GET")]
+async fn playground_route() -> Result<HttpResponse, Error> {
+    playground_handler("/graphql", None).await
+}
+
+#[route("/graphql", method = "GET", method = "POST")]
+pub async fn graphql_route(
+    req: HttpRequest,
+    payload: web::Payload,
+    schema: web::Data<Arc<Schema>>,
+    ctx: web::Data<Arc<Context>>,
+    ) -> Result<HttpResponse, Error> {
+        graphql_handler(&schema, &ctx, req, payload).await
+}
+
+#[actix_web::main]
 async fn main() {
     dotenv().ok();
     env_logger::init();
@@ -18,26 +49,33 @@ async fn main() {
     initialize_db_manager(database_url.clone()).await;
 
     let queue = connect_to_queue(database_url).await;
+    let ctx = Arc::new(Context { queue });
 
-    let ctx = Context { queue };
-    let schema = Schema::new(Query {}, EmptyMutation::new(), EmptySubscription::new());
+    let schema = Arc::new(Schema::new(
+        Query {},
+        EmptyMutation::new(),
+        EmptySubscription::new(),
+    ));
 
-    let (res, errors) = juniper::execute(
-        "query { 
-            kideAccount(uuid: \"c749d6d4-3ede-44b1-b4e6-20b1f52b6a2c\") { 
-                uuid 
-                name 
-                token 
-            } 
-        }",
-        None,
-        &schema,
-        &Variables::new(),
-        &ctx,
-    )
-    .await
-    .unwrap();
+    let server = HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(schema.clone()))
+            .app_data(Data::new(ctx.clone()))
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allowed_methods(vec!["POST", "GET"])
+                    .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                    .allowed_header(header::CONTENT_TYPE)
+                    .supports_credentials()
+                    .max_age(3600),
+            )
+            .wrap(middleware::Compress::default())
+            .wrap(middleware::Logger::default())
+            .service(graphql_route)
+            .service(graphiql_route)
+            .service(playground_route)
+    });
 
-    println!("res: {:#?}", res);
-    println!("errors: {:#?}", errors);
+    server.bind("127.0.0.1:8080").unwrap().run().await.unwrap();
 }
