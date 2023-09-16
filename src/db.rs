@@ -161,4 +161,18 @@ impl DBManager {
             .await?;
         Ok(row)
     }
+
+    // Perform an execute from a fetched bb8 connection
+    pub async fn execute<T>(
+        &self,
+        statement: &T,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<u64, DBError>
+    where
+        T: ?Sized + ToStatement,
+    {
+        let conn = self.connection().await?;
+        let rows = conn.execute(statement, params).await?;
+        Ok(rows)
+    }
 }

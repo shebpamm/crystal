@@ -3,7 +3,7 @@ use fang::FangError;
 use futures::future::join_all;
 use std::time::{Duration, Instant};
 
-use crate::account::{KideAccount,fetch_kide_accounts,AccountIDList};
+use crate::account::{KideAccount,AccountIDList};
 use crate::request::Client;
 use crate::sale::SaleClient;
 use crate::strategy::Count;
@@ -31,7 +31,7 @@ async fn reserve_in_succession(
 pub async fn scalp(event_id: String, account_ids: AccountIDList) -> Result<(), FangError> {
     // Fetch the accounts from the database
     log::debug!("Fetching accounts...");
-    let accounts = fetch_kide_accounts(account_ids).await?;
+    let accounts = KideAccount::from_uuids(account_ids).await?;
 
     // Initialize the connection to the kide api
     log::debug!("Initializing client...");

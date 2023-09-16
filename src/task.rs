@@ -17,6 +17,7 @@ use uuid::Uuid;
 #[serde(crate = "fang::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct ScalpingTask {
+    // TODO: Change this to type Uuid, including in api.rs
     pub event_id: String,
     pub account_ids: Vec<Uuid>,
     pub sale_start: DateTime<Utc>,

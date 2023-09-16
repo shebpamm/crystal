@@ -1,10 +1,11 @@
 use crystal::db::initialize_db_manager;
-use crystal::graphql::{Context, Query, Schema};
+use crystal::graphql::{Context, Query, Mutation, Schema};
 use crystal::queue::connect_to_queue;
 use dotenvy::dotenv;
-use juniper::{EmptyMutation, EmptySubscription};
+use juniper::EmptySubscription;
 use std::env;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -48,12 +49,12 @@ async fn main() {
     // Initialize DB Pool for crystal operations
     initialize_db_manager(database_url.clone()).await;
 
-    let queue = connect_to_queue(database_url).await;
+    let queue = RwLock::new(connect_to_queue(database_url).await);
     let ctx = Arc::new(Context { queue });
 
     let schema = Arc::new(Schema::new(
         Query {},
-        EmptyMutation::new(),
+        Mutation {},
         EmptySubscription::new(),
     ));
 
