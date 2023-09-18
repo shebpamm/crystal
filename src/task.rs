@@ -9,10 +9,10 @@ use fang::typetag;
 use fang::AsyncRunnable;
 use fang::FangError;
 use fang::Scheduled;
+use juniper::GraphQLObject;
 use tokio::time::Duration;
 use tokio_postgres::Row;
 use uuid::Uuid;
-use juniper::GraphQLObject;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
@@ -26,7 +26,12 @@ pub struct ScalpingTask {
 }
 
 impl ScalpingTask {
-    pub fn new(event_id: String, account_ids: AccountIDList, sale_start: DateTime<Utc>, options: TaskOptions) -> Self {
+    pub fn new(
+        event_id: String,
+        account_ids: AccountIDList,
+        sale_start: DateTime<Utc>,
+        options: TaskOptions,
+    ) -> Self {
         Self {
             event_id,
             account_ids,
@@ -72,7 +77,12 @@ impl Default for TaskOptions {
 #[typetag::serde]
 impl AsyncRunnable for ScalpingTask {
     async fn run(&self, _queue: &mut dyn AsyncQueueable) -> Result<(), FangError> {
-        scalp(self.event_id.clone(), self.account_ids.clone()).await?;
+        scalp(
+            self.event_id.clone(),
+            self.account_ids.clone(),
+            self.options.clone(),
+        )
+        .await?;
 
         Ok(())
     }

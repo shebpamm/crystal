@@ -75,8 +75,7 @@ pub struct Variant {
     pub product_variant_maximum_item_quantity_per_user: i64,
     pub product_variant_maximum_reservable_quantity: i64,
     pub product_variant_minimum_reservable_quantity: i64,
-    // #[serde(default)]
-    // pub access_control_memberships: Vec<AccessControlMembership>,
+    pub access_control_memberships: Option<Vec<AccessControlMembership>>,
     pub product_id: String,
     pub product_type: i64,
     pub date_sales_from: DateTime<Utc>,

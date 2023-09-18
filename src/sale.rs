@@ -1,6 +1,6 @@
 use crate::api::{Category, Company, Product, Variant};
 use crate::request::{BatchReservation, Client, VariantReservation};
-use crate::strategy::Quantity;
+use crate::strategy::{Quantity, TicketPriorityStrategy};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -20,6 +20,18 @@ pub struct SaleClient {
 }
 
 impl SaleClient {
+    pub async fn reserve_fuzzy(&self, token: String, strategy: &impl Quantity, priority_strategy: &TicketPriorityStrategy) {
+        // This could be performed in scalp.rs a single time, let's do that if performance suffers
+
+        let variant = priority_strategy.choose(&self.sale.variants);
+
+        if let Some(variant) = variant {
+            self.reserve(&variant, token, strategy).await;
+        } else {
+            println!("No variants to reserve");
+        }
+    }
+
     pub async fn reserve(&self, variant: &Variant, token: String, strategy: &impl Quantity) {
         let variant_reservation = variant.to_reservation(strategy);
 
@@ -53,8 +65,10 @@ impl SaleClient {
         if self.sale.product.max_total_reservations_per_checkout > 0
             && total_quantity > self.sale.product.max_total_reservations_per_checkout
         {
-            println!("Too many variants to reserve");
-            return;
+            println!(
+                "Total quantity {} exceeds max total reservations per checkout {}",
+                total_quantity, self.sale.product.max_total_reservations_per_checkout
+            );
         }
 
         if reservations.is_empty() {

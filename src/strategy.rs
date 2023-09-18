@@ -1,5 +1,8 @@
 use crate::api::Variant;
+use crate::task::TaskOptions;
+use edit_distance::edit_distance;
 use std::cmp;
+use std::cmp::Ordering;
 
 pub trait Quantity {
     fn quantity(&self, variant: &Variant) -> i64;
@@ -27,8 +30,108 @@ pub struct All;
 
 impl Quantity for All {
     fn quantity(&self, variant: &Variant) -> i64 {
-        let cap = cmp::min(variant.product_variant_maximum_item_quantity_per_user, variant.product_variant_maximum_reservable_quantity);
+        let cap = cmp::min(
+            variant.product_variant_maximum_item_quantity_per_user,
+            variant.product_variant_maximum_reservable_quantity,
+        );
 
         cmp::min(variant.availability, cap)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TicketPriorityStrategy {
+    pub name_weight: i32,
+    pub price_weight: i32,
+    pub options: TaskOptions,
+}
+
+impl TicketPriorityStrategy {
+    pub fn new(options: TaskOptions) -> Self {
+        Self {
+            name_weight: 1,
+            price_weight: 1,
+            options,
+        }
+    }
+
+    pub fn choose(&self, variants: &Vec<Variant>) -> Option<Variant> {
+        let mut variants = variants.clone();
+
+        // Filter out variants that are sold out
+        variants.retain(|variant| variant.availability > 0);
+
+        if !self.options.ignore_membership {
+            // Filter out variants that require membership
+            variants.retain(|variant| !variant.is_product_variant_membership_required);
+        }
+
+        variants.sort_by(|a, b| self.compare_variants(a.clone(), b.clone()));
+
+        variants.first().cloned()
+    }
+
+    pub fn compare_variants(&self, a: Variant, b: Variant) -> cmp::Ordering {
+        // Calculate scores based on weights and criteria
+        let a_score = self.calculate_score(&a);
+        let b_score = self.calculate_score(&b);
+
+        log::trace!(
+            "Comparing {} (score: {}) to {} (score: {})",
+            a.name,
+            a_score,
+            b.name,
+            b_score
+        );
+
+        // Compare scores
+        if a_score > b_score {
+            Ordering::Less
+        } else if a_score < b_score {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    }
+
+    fn calculate_score(&self, variant: &Variant) -> i32 {
+        let name_score = self.calculate_name_score(&variant.name);
+        let price_score = self.calculate_price_score(variant.price_per_item);
+
+        name_score * self.name_weight + price_score * self.price_weight
+    }
+
+    // Helper function to calculate the name score (fuzzy string comparison)
+    fn calculate_name_score(&self, name: &str) -> i32 {
+        // Implement your fuzzy string comparison logic here
+        // Return a positive score if names are similar, or 0 if not
+
+        match &self.options.target_name {
+            Some(target_name) => {
+                let distance = edit_distance(&name.to_uppercase(), &target_name.to_uppercase());
+                let max_distance = cmp::max(name.len(), target_name.len());
+
+                let score = 1.0 - (distance as f32 / max_distance as f32);
+
+                (score * 100.0) as i32
+            }
+            None => 0,
+        }
+    }
+
+    // Helper function to calculate the price score (exact price match)
+    fn calculate_price_score(&self, price: i64) -> i32 {
+        match self.options.target_price {
+            Some(target_price) => {
+                let target_price = target_price * 100;
+                log::trace!("Comparing price {} to target price {}", price, target_price as i64);
+                if price == target_price as i64 {
+                    100
+                } else {
+                    0
+                }
+            }
+            None => 0,
+        }
     }
 }

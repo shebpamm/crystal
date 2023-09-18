@@ -75,7 +75,7 @@ async fn main() {
 }
 
 async fn run_task(event_id: String, account_ids: AccountIDList) {
-    crystal::scalp::scalp(event_id.to_string(), account_ids)
+    crystal::scalp::scalp(event_id.to_string(), account_ids, Default::default())
         .await
         .unwrap();
 }

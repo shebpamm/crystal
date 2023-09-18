@@ -3,20 +3,34 @@ use fang::FangError;
 use futures::future::join_all;
 use std::time::{Duration, Instant};
 
-use crate::account::{KideAccount,AccountIDList};
+use crate::account::{AccountIDList, KideAccount};
 use crate::request::Client;
 use crate::sale::SaleClient;
-use crate::strategy::Count;
+use crate::strategy::{Count, TicketPriorityStrategy};
+use crate::task::TaskOptions;
 
 async fn reserve_in_succession(
     sale_client: SaleClient,
     account: KideAccount,
     count: i64,
+    priority_strategy: TicketPriorityStrategy,
 ) -> Result<(), FangError> {
     for i in 1..count + 1 {
-        let _ = sale_client
-            .reserve_all(account.token.clone(), &Count { count: i })
-            .await;
+        if sale_client.sale.product.max_total_reservations_per_checkout > -1 {
+            log::trace!("Global limit detected, reserving a single variant only...");
+            let _ = sale_client
+                .reserve_fuzzy(
+                    account.token.clone(),
+                    &Count { count: i },
+                    &priority_strategy,
+                )
+                .await;
+        } else {
+            let _ = sale_client
+                .reserve_all(account.token.clone(), &Count { count: i })
+                .await;
+        }
+
         log::debug!(
             "Reserved ticket {} of {} for account {}",
             i,
@@ -28,7 +42,13 @@ async fn reserve_in_succession(
     Ok(())
 }
 
-pub async fn scalp(event_id: String, account_ids: AccountIDList) -> Result<(), FangError> {
+pub async fn scalp(
+    event_id: String,
+    account_ids: AccountIDList,
+    options: TaskOptions,
+) -> Result<(), FangError> {
+    let priority_strategy = TicketPriorityStrategy::new(options);
+
     // Fetch the accounts from the database
     log::debug!("Fetching accounts...");
     let accounts = KideAccount::from_uuids(account_ids).await?;
@@ -66,9 +86,9 @@ pub async fn scalp(event_id: String, account_ids: AccountIDList) -> Result<(), F
     log::trace!("Using following info: {:?}", sale_client.sale);
     let measurement_begin = Instant::now();
 
-    let reserve_jobs = accounts
-        .into_iter()
-        .map(|account| reserve_in_succession(sale_client.clone(), account, 20));
+    let reserve_jobs = accounts.into_iter().map(|account| {
+        reserve_in_succession(sale_client.clone(), account, 20, priority_strategy.clone())
+    });
     join_all(reserve_jobs).await;
 
     let execution_time = measurement_begin.elapsed().as_millis();
