@@ -94,6 +94,7 @@ async fn add_task(event_id: String, account_ids: AccountIDList, database_url: St
         event_id.to_string(),
         account_ids,
         sale_client.sale.product.date_sales_from,
+        Default::default(),
     );
 
     queue

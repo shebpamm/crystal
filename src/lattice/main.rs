@@ -24,6 +24,7 @@ async fn main() {
         "".to_owned(),
         vec![],
         chrono::Utc::now(),
+        Default::default(),
     ));
 
     let database_url = env::var("PROD_DATABASE_URL").expect("PROD_DATABASE_URL must be set");

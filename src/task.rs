@@ -12,6 +12,7 @@ use fang::Scheduled;
 use tokio::time::Duration;
 use tokio_postgres::Row;
 use uuid::Uuid;
+use juniper::GraphQLObject;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "fang::serde")]
@@ -21,14 +22,16 @@ pub struct ScalpingTask {
     pub event_id: String,
     pub account_ids: Vec<Uuid>,
     pub sale_start: DateTime<Utc>,
+    pub options: TaskOptions,
 }
 
 impl ScalpingTask {
-    pub fn new(event_id: String, account_ids: AccountIDList, sale_start: DateTime<Utc>) -> Self {
+    pub fn new(event_id: String, account_ids: AccountIDList, sale_start: DateTime<Utc>, options: TaskOptions) -> Self {
         Self {
             event_id,
             account_ids,
             sale_start,
+            options,
         }
     }
 }
@@ -40,6 +43,28 @@ impl<'a> TryFrom<&'a Row> for ScalpingTask {
         let data = row.try_get("metadata")?;
 
         Ok(serde_json::from_value(data)?)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, GraphQLObject)]
+#[serde(crate = "fang::serde")]
+#[serde(rename_all = "camelCase")]
+#[graphql(description = "Options for a task")]
+pub struct TaskOptions {
+    pub target_price: Option<i32>,
+    pub target_name: Option<String>,
+    pub use_regex: bool,
+    pub ignore_membership: bool,
+}
+
+impl Default for TaskOptions {
+    fn default() -> Self {
+        Self {
+            target_price: None,
+            target_name: None,
+            use_regex: false,
+            ignore_membership: true,
+        }
     }
 }
 

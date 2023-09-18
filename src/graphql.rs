@@ -14,7 +14,7 @@ use crate::account::KideAccount;
 use crate::db::get_db_manager;
 use crate::queue::Queue;
 use crate::request::Client;
-use crate::task::ScalpingTask;
+use crate::task::{ScalpingTask, TaskOptions};
 
 // ---- Context ----
 
@@ -70,7 +70,7 @@ struct Task {
     accounts: Vec<KideAccount>,
     sale_start: DateTime<Utc>,
     state: TaskState,
-    // options: TaskOptions,
+    options: TaskOptions,
 }
 
 impl Task {
@@ -91,18 +91,10 @@ impl Task {
             event_id: task.event_id,
             accounts: KideAccount::from_uuids(task.account_ids).await?,
             sale_start: task.sale_start,
-            state
+            state,
+            options: task.options,
         })
     }
-}
-
-#[derive(GraphQLObject)]
-#[graphql(description = "Options for a task")]
-struct TaskOptions {
-    target_price: i32,
-    ignore_membership: Option<String>,
-    target_name: Option<String>,
-    use_regex: bool,
 }
 
 // ---- Query Root ----
@@ -137,6 +129,7 @@ impl Query {
                 accounts,
                 sale_start: task.sale_start,
                 state,
+                options: task.options,
             });
         }
 
@@ -162,7 +155,6 @@ impl Query {
         let task = ScalpingTask::try_from(&row)?;
         let accounts = KideAccount::from_uuids(task.account_ids).await?;
 
-
         // I don't bother inlining this
         let state: FangTaskState = row.get("state");
         let state: TaskState = state.into();
@@ -172,6 +164,7 @@ impl Query {
             accounts,
             sale_start: task.sale_start,
             state,
+            options: task.options,
         }))
     }
 
@@ -211,23 +204,23 @@ struct DeleteKideAccountInput {
 struct AddTaskInput {
     event_id: String,
     accounts: Vec<Uuid>,
-    // options: TaskOptionsInput,
+    options: Option<TaskOptionsInput>,
 }
 
 #[derive(GraphQLInputObject)]
 struct UpdateTaskInput {
     event_id: String,
     accounts: Option<Vec<Uuid>>,
-    // options: Option<TaskOptionsInput>,
+    options: Option<TaskOptionsInput>,
 }
 
 // Used for both AddTaskInput and UpdateTaskInput
 #[derive(GraphQLInputObject)]
 struct TaskOptionsInput {
-    target_price: i32,
-    ignore_membership: Option<String>,
+    target_price: Option<i32>,
+    ignore_membership: Option<bool>,
     target_name: Option<String>,
-    use_regex: bool,
+    use_regex: Option<bool>,
 }
 
 #[derive(GraphQLInputObject)]
@@ -281,10 +274,29 @@ impl Mutation {
         let client = Client::new();
         let sale_client = client.product(input.event_id.clone()).await.unwrap();
 
+        let mut options = TaskOptions::default();
+
+        // Set options if they were provided
+        input.options.map(|options_input| {
+            options_input
+                .target_price
+                .map(|price| options.target_price = Some(price));
+            options_input
+                .target_name
+                .map(|name| options.target_name = Some(name));
+            options_input
+                .use_regex
+                .map(|regex| options.use_regex = regex);
+            options_input
+                .ignore_membership
+                .map(|ignore| options.ignore_membership = ignore);
+        });
+
         let task = ScalpingTask::new(
             input.event_id,
             input.accounts,
             sale_client.sale.product.date_sales_from,
+            options,
         );
 
         // Lock the queue for writing
@@ -316,13 +328,28 @@ impl Mutation {
 
         let row = row.unwrap();
 
-
         // I don't bother inlining this
         let state: FangTaskState = row.get("state");
         let state: TaskState = state.into();
 
         let mut task = ScalpingTask::try_from(&row)?;
         input.accounts.map(|accounts| task.account_ids = accounts);
+
+        // Set options if they were provided
+        input.options.map(|options_input| {
+            options_input
+                .target_price
+                .map(|price| task.options.target_price = Some(price));
+            options_input
+                .target_name
+                .map(|name| task.options.target_name = Some(name));
+            options_input
+                .use_regex
+                .map(|regex| task.options.use_regex = regex);
+            options_input
+                .ignore_membership
+                .map(|ignore| task.options.ignore_membership = ignore);
+        });
 
         let metadata = serde_json::to_value(&task as &dyn AsyncRunnable)?;
 
@@ -340,6 +367,7 @@ impl Mutation {
             accounts,
             sale_start: task.sale_start,
             state,
+            options: task.options,
         }))
     }
 
