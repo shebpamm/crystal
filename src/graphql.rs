@@ -324,7 +324,7 @@ impl Mutation {
         let mut task = ScalpingTask::try_from(&row)?;
         input.accounts.map(|accounts| task.account_ids = accounts);
 
-        let metadata = serde_json::to_value(&task)?;
+        let metadata = serde_json::to_value(&task as &dyn AsyncRunnable)?;
 
         let _ = db
             .execute(
