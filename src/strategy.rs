@@ -10,10 +10,11 @@ const NEGATIVE_WORDS: [&str; 3] = [
     "inva",
 ];
 
-const POSITIVE_WORDS: [&str; 3] = [
+const POSITIVE_WORDS: [&str; 4] = [
     "4 hengen",
     "Promenade",
     "A-hytti",
+    "helga",
 ];
 
 pub trait Quantity {
