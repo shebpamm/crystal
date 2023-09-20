@@ -98,7 +98,7 @@ impl AsyncRunnable for ScalpingTask {
     }
 
     fn max_retries(&self) -> i32 {
-        0
+        5
     }
 
     fn task_type(&self) -> String {

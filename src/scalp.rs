@@ -87,7 +87,7 @@ pub async fn scalp(
     let measurement_begin = Instant::now();
 
     let reserve_jobs = accounts.into_iter().map(|account| {
-        reserve_in_succession(sale_client.clone(), account, 20, priority_strategy.clone())
+        reserve_in_succession(sale_client.clone(), account, 1, priority_strategy.clone())
     });
     join_all(reserve_jobs).await;
 

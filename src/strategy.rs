@@ -1,8 +1,20 @@
 use crate::api::Variant;
 use crate::task::TaskOptions;
-use edit_distance::edit_distance;
 use std::cmp;
 use std::cmp::Ordering;
+use sublime_fuzzy::best_match;
+
+const NEGATIVE_WORDS: [&str; 3] = [
+    "allergia",
+    "handicap",
+    "inva",
+];
+
+const POSITIVE_WORDS: [&str; 3] = [
+    "4 hengen",
+    "Promenade",
+    "A-hytti",
+];
 
 pub trait Quantity {
     fn quantity(&self, variant: &Variant) -> i64;
@@ -50,7 +62,7 @@ impl TicketPriorityStrategy {
     pub fn new(options: TaskOptions) -> Self {
         Self {
             name_weight: 1,
-            price_weight: 1,
+            price_weight: 1000,
             options,
         }
     }
@@ -103,20 +115,32 @@ impl TicketPriorityStrategy {
 
     // Helper function to calculate the name score (fuzzy string comparison)
     fn calculate_name_score(&self, name: &str) -> i32 {
-        // Implement your fuzzy string comparison logic here
-        // Return a positive score if names are similar, or 0 if not
+        Self::score_word(name).try_into().unwrap_or(0)
+    }
 
-        match &self.options.target_name {
-            Some(target_name) => {
-                let distance = edit_distance(&name.to_uppercase(), &target_name.to_uppercase());
-                let max_distance = cmp::max(name.len(), target_name.len());
+    fn score_word(word: &str) -> isize {
+        let mut positive_score = 0;
+        let mut negative_score = 0;
 
-                let score = 1.0 - (distance as f32 / max_distance as f32);
+        for positive_word in POSITIVE_WORDS.iter() {
+            let score = match best_match(positive_word, word) {
+                Some(m) => m.score(),
+                None => 0,
+            };
 
-                (score * 100.0) as i32
-            }
-            None => 0,
+            positive_score += score;
         }
+
+        for negative_word in NEGATIVE_WORDS.iter() {
+            let score = match best_match(negative_word, word) {
+                Some(m) => m.score(),
+                None => 0,
+            };
+
+            negative_score += score;
+        }
+
+        positive_score - negative_score * 10
     }
 
     // Helper function to calculate the price score (exact price match)
@@ -124,7 +148,11 @@ impl TicketPriorityStrategy {
         match self.options.target_price {
             Some(target_price) => {
                 let target_price = target_price * 100;
-                log::trace!("Comparing price {} to target price {}", price, target_price as i64);
+                log::trace!(
+                    "Comparing price {} to target price {}",
+                    price,
+                    target_price as i64
+                );
                 if price == target_price as i64 {
                     100
                 } else {

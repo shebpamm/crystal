@@ -34,6 +34,7 @@ actix-web = "4.4.0"
 juniper_actix = { git = "https://github.com/graphql-rust/juniper" }
 actix-cors = "0.6.4"
 edit-distance = "2.1.0"
+sublime_fuzzy = "0.7.0"
 
 [[bin]]
 name = "lattice"
