@@ -44,7 +44,7 @@ async fn main() {
     env_logger::init();
     let cli = Cli::parse();
 
-    let database_url = env::var("PROD_DATABASE_URL").expect("PROD_DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     log::info!("Starting...");
 

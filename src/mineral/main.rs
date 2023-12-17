@@ -42,7 +42,7 @@ async fn main() {
     dotenv().ok();
     env_logger::init();
 
-    let database_url = env::var("PROD_DATABASE_URL").expect("PROD_DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     log::info!("Starting...");
 
